@@ -200,18 +200,16 @@ module TypeInfo =
             && not ent.IsValueType  // F# struct records/unions/tuples are modelled as value types, and should support Copy where possible, or Clone if 1 or more children are not Copy
         | _ -> false
 
-    let shouldBePassByRefForParam (com: IRustCompiler) t =
-        // let isPassByRefTy =
-        //     match t with
-        //     | Fable.GenericParam _
-        //     | Fable.LambdaType _
-        //     | Fable.DelegateType _ -> true
-        //     | Fable.DeclaredType(eref, _) ->
-        //         let ety = com.GetEntity eref
-        //         not ety.IsValueType
-        //     | _ -> false
-        // shouldBeRefCountWrapped com t || isPassByRefTy
-        true
+    let shouldBePassByRefForParam (com: IRustCompiler) t=
+        let isPassByRefTy =
+            match t with
+            | Fable.LambdaType _
+            | Fable.DelegateType _ -> true
+            | Fable.DeclaredType(eref, _) ->
+                let ety = com.GetEntity eref
+                not ety.IsValueType
+            | _ -> false
+        shouldBeRefCountWrapped com t || isPassByRefTy
 
     let rec tryGetIdent = function
         | Fable.IdentExpr i -> i.Name |> Some
@@ -804,20 +802,6 @@ module Util =
 *)
     let transformIdent com ctx r (ident: Fable.Ident) =
         mkGenericPathExpr [ident.Name] None
-        // let isRef =
-        //     ctx.ScopedSymbols
-        //     |> Map.tryFind ident.Name
-        //     |> Option.map (fun s -> s.IsRef)
-        //     |> Option.defaultValue false
-        // let expr =
-        //     let expr = mkGenericPathExpr [ident.Name] None
-        //     expr
-        //     // if shouldBeRefCountWrapped com ident.Type
-        //     // then mkDerefExpr expr
-        //     // else expr
-        // if isRef
-        // then mkDerefExpr expr |> mkParenExpr
-        // else expr
 
     let transformIdentGet com ctx r (ident: Fable.Ident) =
         let expr = transformIdent com ctx r ident
@@ -1346,7 +1330,7 @@ module Util =
         elif isCloneable com t && not isOnlyReference then
             makeClone expr // shouldn't really be using a rchelper as this is NOT an rc
         elif varAttrs.IsRef then
-            makeClone expr
+            mkDerefExpr expr
         else
             expr
 (*
