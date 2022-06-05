@@ -341,6 +341,13 @@ module TypeInfo =
         | _ ->
             isTypeOfType com isComparableType isComparableEntity entNames typ
 
+    let (|IsInref|_|) = function
+        | Fable.DeclaredType(entRef, genArgs) ->
+            match genArgs with
+            | nested::Fable.DeclaredType(nRef, _)::[] when nRef.FullName = "Microsoft.FSharp.Core.ByRefKinds.In" -> Some nested
+            | _ -> None
+        | _ -> None
+
     let isComparableEntity com entNames (ent: Fable.Entity) =
         not (ent.IsInterface)
         && (hasStructuralComparison ent)
@@ -371,6 +378,7 @@ module TypeInfo =
         | Fable.Tuple _
         | Fable.AnonymousRecordType _
             -> false
+        | IsInref t -> false
 
         // always Rc-wrapped
         | Fable.String
@@ -741,7 +749,11 @@ module TypeInfo =
                     | Replacements.Util.BclKeyValuePair(k, v) -> transformTupleType com ctx [k; v]
                     | Replacements.Util.FSharpResult(ok, err) -> transformResultType com ctx [ok; err]
                     | Replacements.Util.FSharpChoice genArgs -> transformChoiceType com ctx genArgs
-                    | Replacements.Util.FSharpReference(genArg) -> transformRefCellType com ctx genArg
+                    | Replacements.Util.FSharpReference(genArg) ->
+                        match typ with
+                        | IsInref nested ->
+                            transformType com ctx nested
+                        | _ -> transformRefCellType com ctx genArg
                 | _ ->
                     transformDeclaredType com ctx entRef genArgs
 
@@ -1591,6 +1603,7 @@ module Util =
             let varAttrs, isOnlyReference = calcVarAttrsAndOnlyRef com ctx e
             if expectingByRef = Some true && not varAttrs.IsRef then //implicit syntax
                 expr |> mkAddrOfExpr
+
             elif shouldBeRefCountWrapped com e.Type && not isOnlyReference then
                 makeClone expr
             elif isCloneableType com e.Type && not isOnlyReference then
@@ -2872,7 +2885,7 @@ module Util =
             transformLeaveContext com ctx None body
 
     let transformFunction com ctx (name: string option) (args: Fable.Ident list) (body: Fable.Expr) =
-        //if name |> Option.exists (fun n -> n.Contains("Anon record structural equality works")) then System.Diagnostics.Debugger.Break()
+        if name |> Option.exists (fun n -> n.Contains("byrefIntFn")) then System.Diagnostics.Debugger.Break()
         let isRecursive, isTailRec = isTailRecursive name body
         let argTypes = args |> List.map (fun arg -> arg.Type)
         let genParams = getGenericParams ctx (argTypes @ [body.Type])

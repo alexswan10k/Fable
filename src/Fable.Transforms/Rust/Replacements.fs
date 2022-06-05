@@ -838,9 +838,11 @@ let fableCoreLib (com: ICompiler) (ctx: Context) r t (i: CallInfo) (thisArg: Exp
         | _ -> None
     | _ -> None
 
-let getReference r t expr = Helper.InstanceCall(expr, "get", t, [])
+let getReference r t expr = expr
+    //Helper.InstanceCall(expr, "get", t, [])
 let setReference r expr value = Helper.InstanceCall(expr, "set", Unit, [value]) |> nativeCall
-let newReference com r t value = Helper.LibCall(com, "Native", "refCell", t, [value], ?loc=r) |> nativeCall
+let newReference com r t value =
+    Fable.Operation (Fable.Unary(UnaryOperator.UnaryAddressOf, value), t, None)
 
 let references (com: ICompiler) (ctx: Context) r t (i: CallInfo) (thisArg: Expr option) (args: Expr list) =
     match i.CompiledName, thisArg, args with
