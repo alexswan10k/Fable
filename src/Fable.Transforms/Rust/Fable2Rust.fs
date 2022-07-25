@@ -1645,8 +1645,7 @@ module Util =
             let isStruct = (com.GetEntity entRef).IsValueType
             makeRecord com ctx r isStruct values entRef genArgs
         | Fable.NewAnonymousRecord (values, fieldNames, genArgs, isStruct) -> makeTuple com ctx r isStruct values
-        | Fable.NewUnion (values, tag, entRef, genArgs) ->
-            makeUnion com ctx r values tag entRef genArgs
+        | Fable.NewUnion (values, tag, entRef, genArgs) -> makeUnion com ctx r values tag entRef genArgs
 
     let calcVarAttrsAndOnlyRef com ctx (e: Fable.Expr) =
         let t = e.Type
@@ -3544,13 +3543,12 @@ module Util =
                     []
                 else
                     let ty =
-                        let genArgs = getEntityGenArgs ent
-                        let entRef = Fable.DeclaredType(entRef, getEntityGenArgs ent)
-                        let genArgs = genArgs |> transformGenArgs com ctx
+                        let genArgs = getEntityGenArgs ent |> transformGenArgs com ctx
                         let bounds = mkTypeTraitGenericBound [entName] genArgs
                         let ty = mkTraitTy [bounds]
                         // TODO : Wrapping the impl block in a Lrc breaks casting (see IEnumerable), because it no longer implements the interface for T but for Lrc<T>
-                        //maybeWrapInPtrTy com ctx entRef ty
+                        // let entRef = Fable.DeclaredType(entRef, getEntityGenArgs ent)
+                        // maybeWrapInPtrTy com ctx entRef ty
                         ty
                     let genArgs = getEntityGenArgs tEnt
                     let nameParts =
