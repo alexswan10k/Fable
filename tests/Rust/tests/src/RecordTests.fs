@@ -177,3 +177,12 @@ let ``Box record fields works`` () =
     let x = { a=1 }
     let y = x |> add1Box
     y.a |> equal 2
+
+#if FABLE_COMPILER
+open Fable.Core
+[<Fable.Core.Emit("$0 as StructRecord")>]
+let ensureIsStructRecordUnwrapped s = Fable.Core.Util.nativeOnly
+[<Fact>]
+let ``Struct record should not be wrapped in a Lrc`` () =
+    { i=1; s="world" } |> ensureIsStructRecordUnwrapped |> ignore
+#endif

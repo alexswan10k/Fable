@@ -1548,7 +1548,7 @@ module Util =
         then expr
         else expr |> makeLrcValue
 
-    let makeRecord (com: IRustCompiler) ctx r isStruct values entRef genArgs =
+    let makeRecord (com: IRustCompiler) ctx r values entRef genArgs =
         let ent = com.GetEntity(entRef)
         let fields =
             Seq.zip ent.FSharpFields values
@@ -1563,7 +1563,7 @@ module Util =
         let genArgs = transformGenArgs com ctx genArgs
         let path = makeFullNamePath ent.FullName genArgs
         let expr = mkStructExpr path fields // TODO: range
-        if isStruct || isCopyableEntity com Set.empty ent
+        if ent.IsValueType || isCopyableEntity com Set.empty ent
         then expr
         else expr |> maybeWrapSmartPtr ent
 
@@ -1642,8 +1642,7 @@ module Util =
         | Fable.NewList (headAndTail, typ) -> makeList com ctx r typ headAndTail
         | Fable.NewOption (value, typ, isStruct) -> makeOption com ctx r typ value isStruct
         | Fable.NewRecord (values, entRef, genArgs) ->
-            let isStruct = (com.GetEntity entRef).IsValueType
-            makeRecord com ctx r isStruct values entRef genArgs
+            makeRecord com ctx r values entRef genArgs
         | Fable.NewAnonymousRecord (values, fieldNames, genArgs, isStruct) -> makeTuple com ctx r isStruct values
         | Fable.NewUnion (values, tag, entRef, genArgs) -> makeUnion com ctx r values tag entRef genArgs
 
